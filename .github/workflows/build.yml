@@ -1,0 +1,45 @@
+name: APK derle
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Proje zip olarak yüklendiyse aç
+        run: |
+          if [ -f proje.zip ]; then unzip -q -o proje.zip -d proje_ac; fi
+          G=$(find . -maxdepth 4 -name gradlew -not -path "./.git/*" | head -1)
+          echo "SRC=$(dirname "$G")" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Derle
+        working-directory: ${{ env.SRC }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: APK dosyasını hazırla
+        run: cp "${{ env.SRC }}/app/build/outputs/apk/debug/app-debug.apk" abert-tv.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: abert-tv-apk
+          path: abert-tv.apk
+
+      - name: Releases bölümüne koy (indirme bağlantısı için)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest --cleanup-tag -y || true
+          gh release create latest abert-tv.apk --title "Abert TV (son derleme)" --notes "Otomatik derleme" --target "${{ github.sha }}"
