@@ -23,6 +23,24 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Gizli imza anahtarı (isteğe bağlı; tanımlı değilse atlanır)
+        env:
+          KS_B64: ${{ secrets.ABERT_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ABERT_KS_PASS }}
+          KS_ALIAS: ${{ secrets.ABERT_KS_ALIAS }}
+          KEY_PASS: ${{ secrets.ABERT_KEY_PASS }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/abert.jks"
+            echo "ABERT_KEYSTORE=$RUNNER_TEMP/abert.jks" >> "$GITHUB_ENV"
+            echo "ABERT_KS_PASS=$KS_PASS" >> "$GITHUB_ENV"
+            echo "ABERT_KS_ALIAS=$KS_ALIAS" >> "$GITHUB_ENV"
+            echo "ABERT_KEY_PASS=$KEY_PASS" >> "$GITHUB_ENV"
+            echo "Gizli imza anahtarı kullanılıyor"
+          else
+            echo "Gizli anahtar yok; depodaki sabit anahtar kullanılıyor"
+          fi
+
       - name: Derle
         working-directory: ${{ env.SRC }}
         run: |
